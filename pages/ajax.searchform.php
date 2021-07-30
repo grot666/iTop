@@ -36,6 +36,7 @@ try
 		throw new AjaxSearchException("Invalid query (empty filter)", 400);
 	}
 
+	$oSearchContext = new ContextTag(ContextTag::TAG_SEARCH);
 	$oPage = new AjaxPage("");
 	$oPage->SetContentType('text/html');
 
