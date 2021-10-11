@@ -540,12 +540,13 @@ class FileLog
  */
 class LogChannels
 {
-	public const CLI = 'CLI';
-	public const CONSOLE = 'console';
-	public const DEADLOCK = 'DeadLock';
+	public const CLI          = 'CLI';
+	public const CONSOLE      = 'console';
+	public const DEADLOCK     = 'DeadLock';
 	public const INLINE_IMAGE = 'InlineImage';
-	public const PORTAL = 'portal';
-	public const CMDB_SOURCE = 'cmdbsource';
+	public const PORTAL       = 'portal';
+	public const CMDB_SOURCE  = 'cmdbsource';
+	public const CORE         = 'core';
 }
 
 
@@ -661,6 +662,8 @@ abstract class LogAPI
 		}
 		if (static::IsLogLevelEnabled($sLevel, $sChannel, static::ENUM_CONFIG_PARAM_DB)) {
 			self::WriteToDb($sMessage, $sChannel, $aContext);
+		} else {
+			static::$oLastEventIssue = null;
 		}
 	}
 
@@ -786,7 +789,8 @@ abstract class LogAPI
 			self::$oLastEventIssue->DBInsertNoReload();
 		}
 		catch (Exception $e) {
-			IssueLog::Error("Failed to log issue into the DB", null, [
+			// calling low level methods : if we would call Error() for example we would try to write to DB again...
+			static::$m_oFileLog->Error('Failed to log issue into the DB', LogChannels::CORE, [
 				'exception message' => $e->getMessage(),
 				'exception stack'   => $e->getTraceAsString(),
 			]);
@@ -800,11 +804,14 @@ abstract class LogAPI
 	 */
 	protected static function GetEventIssue(string $sMessage, string $sChannel, array $aContext): EventIssue
 	{
+		$sDate = date('Y-m-d H:i:s');
 		$aStack = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5);
 		$sCurrentCallStack = var_export($aStack, true);
 
 		$oEventIssue = new EventIssue();
+		$oEventIssue->Set('issue', $sMessage);
 		$oEventIssue->Set('message', $sMessage);
+		$oEventIssue->Set('date', $sDate);
 		$oEventIssue->Set('userinfo', UserRights::GetUserFriendlyName());
 		$oEventIssue->Set('callstack', $sCurrentCallStack);
 		$oEventIssue->Set('data', $aContext);
@@ -1369,6 +1376,8 @@ class ExceptionLog extends LogAPI
 
 	protected static function GetEventIssue(string $sMessage, string $sChannel, array $aContext): EventIssue
 	{
+		$oEventIssue = parent::GetEventIssue($sMessage, $sChannel, $aContext);
+
 		$oContextException = $aContext[self::CONTEXT_EXCEPTION];
 		unset($aContext[self::CONTEXT_EXCEPTION]);
 
@@ -1376,10 +1385,8 @@ class ExceptionLog extends LogAPI
 		$sErrorStackTrace = ($oContextException instanceof CoreException) ? $oContextException->getFullStackTraceAsString() : $oContextException->getTraceAsString();
 		$aContextData = ($oContextException instanceof CoreException) ? $oContextException->getContextData() : [];
 
-		$oEventIssue = new EventIssue();
-		$oEventIssue->Set('message', $oContextException->getMessage());
-		$oEventIssue->Set('userinfo', UserRights::GetUserFriendlyName());
 		$oEventIssue->Set('issue', $sIssue);
+		$oEventIssue->Set('message', $oContextException->getMessage());
 		$oEventIssue->Set('callstack', $sErrorStackTrace);
 		$oEventIssue->Set('data', array_merge($aContextData, $aContext));
 
