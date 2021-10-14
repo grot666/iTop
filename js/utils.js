@@ -971,7 +971,83 @@ const CombodoJSConsole = {
 	 *
 	 * @param sMessage {string}
 	 */
-	Error: function(sMessage) {
+	Error: function (sMessage) {
 		this._Trace(sMessage, 'error');
+	}
+}
+
+
+/**
+ * @var string
+ * @since 2.6.5 2.7.6 3.0.0 N°4367
+ */
+const ENUM_SANITIZATION_FILTER_INTEGER = 'integer';
+const ENUM_SANITIZATION_FILTER_STRING = 'string';
+const ENUM_SANITIZATION_FILTER_CONTEXT_PARAM = 'context_param';
+const ENUM_SANITIZATION_FILTER_PARAMETER = 'parameter';
+const ENUM_SANITIZATION_FILTER_FIELD_NAME = 'field_name';
+const ENUM_SANITIZATION_FILTER_TRANSACTION_ID = 'transaction_id';
+const ENUM_SANITIZATION_FILTER_ELEMENT_IDENTIFIER = 'element_identifier';
+const ENUM_SANITIZATION_FILTER_VARIABLE_NAME = 'variable_name';
+
+/**
+ * Helper for Sanitize string
+ *
+ * Note: Same as in php
+ *
+ * @api
+ * @since 2.6.5 2.7.6 3.0.0 N°4367
+ */
+const CombodoSanitizer = {
+	/**
+	 * Instantiate a tooltip on oElem from its data attributes
+	 *
+	 * Note: Content SHOULD be HTML entity encoded to avoid markup breaks (eg. when using a double quote in a sentence)
+	 *
+	 * @param {String} sValue The string to sanitize
+	 * @param {String} sDefaultValue The string to return if sValue not match (used for some filters)
+	 * @param {String} $sSanitizationFilter one of the ENUM_SANITIZATION_FILTERs
+	 */
+	Sanitize: function (sValue, sDefaultValue, sSanitizationFilter) {
+		var sValueSanitized = '';
+		var sRegExp = '';
+		switch (sSanitizationFilter) {
+			case ENUM_SANITIZATION_FILTER_INTEGER:
+				return this._CleanString(sValue, sDefaultValue, /[^0-9-+]*/g);
+
+			case ENUM_SANITIZATION_FILTER_STRING:
+				return $("<div>").text(sValue).html();
+
+			case ENUM_SANITIZATION_FILTER_TRANSACTION_ID:
+				return this._ReplaceString(sValue, sDefaultValue, /^([\. A-Za-z0-9_=-]*)$/g, '');
+
+			case ENUM_SANITIZATION_FILTER_PARAMETER:
+				return this._ReplaceString(sValue, sDefaultValue, /^([ A-Za-z0-9_=-]*)$/g);
+
+			case ENUM_SANITIZATION_FILTER_FIELD_NAME:
+				return this._ReplaceString(sValue, sDefaultValue, /^[A-Za-z0-9_]+(->[A-Za-z0-9_]+)*$/g);
+
+			case ENUM_SANITIZATION_FILTER_CONTEXT_PARAM:
+				return this._ReplaceString(sValue, sDefaultValue, /^[ A-Za-z0-9_=%:+-]*$/g);
+
+			case ENUM_SANITIZATION_FILTER_ELEMENT_IDENTIFIER:
+				return this._CleanString(sValue, sDefaultValue, /[^a-zA-Z0-9_-]/g);
+
+			case ENUM_SANITIZATION_FILTER_VARIABLE_NAME:
+				return this._CleanString(sValue, sDefaultValue, /[^a-zA-Z0-9_]/g);
+
+		}
+		return sDefaultValue;
+	},
+	_CleanString: function (sValue, sDefaultValue, sRegExp) {
+		return sValue.replace(sRegExp, '');
+	},
+	_ReplaceString: function (sValue, sDefaultValue, sRegExp) {
+		if (sRegExp.test(sValue)) {
+// alert(sValue);
+			return sValue;
+		} else {
+			return sDefaultValue;
+		}
 	}
 }
