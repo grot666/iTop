@@ -1044,7 +1044,6 @@ const CombodoSanitizer = {
 	},
 	_ReplaceString: function (sValue, sDefaultValue, sRegExp) {
 		if (sRegExp.test(sValue)) {
-// alert(sValue);
 			return sValue;
 		} else {
 			return sDefaultValue;
